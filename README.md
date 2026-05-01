@@ -19,7 +19,13 @@ Built on [qlaud](https://qlaud.ai) — the managed AI stack (gateway + threads +
 
 ---
 
-## Quickstart
+## Deploy to Vercel — one click
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FqlaudAI%2Fai-chat-saas-starter&env=NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,CLERK_WEBHOOK_SECRET,QLAUD_MASTER_KEY,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,STRIPE_PRICE_ID_PRO,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,NEXT_PUBLIC_APP_URL&envDescription=Get%20Clerk%20%2B%20qlaud%20%2B%20Stripe%20keys%20before%20clicking%20deploy.&envLink=https%3A%2F%2Fgithub.com%2FqlaudAI%2Fai-chat-saas-starter%23configure-the-3-services&project-name=ai-chat-saas&repository-name=ai-chat-saas)
+
+Vercel will ask for the env vars below. Get them all set up first (15 min), then click deploy. After deploy, point your Clerk + Stripe webhooks at the live URL — see [Post-deploy webhook setup](#post-deploy-webhook-setup).
+
+## Quickstart (local)
 
 ```bash
 git clone https://github.com/qlaudAI/ai-chat-saas-starter
@@ -83,12 +89,19 @@ When you outgrow that (you'll know — admin queries, multi-thread sidebars), dr
 
 ---
 
-## Deploy
+## Post-deploy webhook setup
 
-Works on Vercel, Cloudflare (via OpenNext), or any Node host. After deploy:
+The webhook URLs need the live domain, so you can't fully configure them until *after* the first deploy. Once Vercel hands you a URL like `https://ai-chat-saas-xxxx.vercel.app`:
 
-1. Update both webhook endpoints (Clerk + Stripe) to point at your live domain.
-2. Set `NEXT_PUBLIC_APP_URL` in env so the Stripe checkout redirect comes back to the right place.
+1. **Clerk** → Webhooks → Edit your endpoint → set URL to `https://<your-vercel-url>/api/webhooks/clerk`. Subscribe to `user.created`. Copy the signing secret into the `CLERK_WEBHOOK_SECRET` env var on Vercel and redeploy.
+2. **Stripe** → Webhooks → Edit endpoint → set URL to `https://<your-vercel-url>/api/webhooks/stripe`. Subscribe to `checkout.session.completed`. Copy the signing secret into `STRIPE_WEBHOOK_SECRET` on Vercel and redeploy.
+3. **Vercel env** → set `NEXT_PUBLIC_APP_URL` to your live URL (used as the Stripe checkout redirect target).
+
+Test the flow: sign up a fresh user, watch the Clerk webhook fire (Clerk dashboard shows the call log), confirm a qlaud key was minted (qlaud.ai/keys), then chat. Then click upgrade, complete a Stripe test card, confirm cap raised on the account page.
+
+## Custom domain on Vercel
+
+Adding a custom domain is two clicks in the Vercel dashboard. After it propagates, update the webhook URLs to use the custom domain (Clerk + Stripe both need to know the new origin) and bump `NEXT_PUBLIC_APP_URL`.
 
 ---
 
