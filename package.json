@@ -4,7 +4,7 @@
   "private": true,
   "description": "Multi-tenant AI chat SaaS starter — Next.js + Clerk + Stripe + qlaud. Per-user keys, hard spend caps, persisted threads. Clone, set 2 env vars, ship a paid AI app this weekend.",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -12,11 +12,19 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.0",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "geist": "^1.3.1",
+    "lucide-react": "^0.460.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^17.4.0",
-    "svix": "^1.42.0"
+    "svix": "^1.42.0",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

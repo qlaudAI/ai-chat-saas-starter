@@ -3,8 +3,22 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
 import { getUserUsage } from "@/lib/qlaud";
 import { getUserPrivate, getUserPublic } from "@/lib/user-metadata";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +32,7 @@ export default async function AccountPage() {
   if (!priv.qlaud_key_id) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-3xl font-bold">Account</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Account</h1>
         <p className="mt-4 text-muted-foreground">
           We haven&apos;t minted a qlaud key for you yet — the Clerk webhook
           may not be configured. See the README for setup.
@@ -28,75 +42,98 @@ export default async function AccountPage() {
   }
 
   const usage = await getUserUsage(priv.qlaud_key_id);
-  const pct =
-    usage.cap_usd && usage.cap_usd > 0
-      ? Math.min(100, (usage.spent_usd / usage.cap_usd) * 100)
-      : 0;
+  const cap = usage.cap_usd ?? pub.cap_usd ?? 0;
+  const pct = cap > 0 ? Math.min(100, (usage.spent_usd / cap) * 100) : 0;
+  const plan = priv.plan ?? "free";
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="text-3xl font-bold">Account</h1>
-      <div className="mt-2 text-sm text-muted-foreground">
-        Plan: <span className="font-medium">{priv.plan ?? "free"}</span>
+    <main className="mx-auto max-w-2xl px-6 pb-20 pt-10">
+      <div className="mb-8">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link href="/chat">
+            <ArrowLeft className="h-4 w-4" /> Back to chat
+          </Link>
+        </Button>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-baseline justify-between">
-          <div className="text-sm text-muted-foreground">Usage this period</div>
-          <div className="text-sm">
-            ${usage.spent_usd.toFixed(4)} / $
-            {(usage.cap_usd ?? pub.cap_usd ?? 0).toFixed(2)}
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Usage rollup powered by qlaud.
+          </p>
         </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full bg-primary transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        {pct >= 80 && (
-          <div className="mt-3 text-xs text-primary">
-            You&apos;re approaching your cap.{" "}
-            <a href="/pricing" className="underline">
-              Upgrade
-            </a>{" "}
-            to keep chatting without interruption.
-          </div>
-        )}
+        <Badge
+          variant={plan === "pro" ? "default" : "soft"}
+          className="capitalize"
+        >
+          {plan}
+        </Badge>
       </div>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <div className="flex items-baseline justify-between">
+            <CardTitle>Usage this period</CardTitle>
+            <span className="text-sm tabular-nums text-muted-foreground">
+              ${usage.spent_usd.toFixed(4)} / ${cap.toFixed(2)}
+            </span>
+          </div>
+          <CardDescription>
+            Hard cap enforced at the gateway. You&apos;ll never be charged
+            more than your cap.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Progress value={pct} />
+          {pct >= 80 && plan !== "pro" && (
+            <p className="mt-3 text-xs text-primary">
+              You&apos;re approaching your cap.{" "}
+              <Link href="/pricing" className="font-medium underline">
+                Upgrade
+              </Link>{" "}
+              to keep chatting without interruption.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {usage.by_model.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-          <div className="text-sm font-medium">By model</div>
-          <table className="mt-3 w-full text-sm">
-            <tbody>
-              {usage.by_model.map((m) => (
-                <tr key={m.model} className="border-t border-border">
-                  <td className="py-2">{m.model}</td>
-                  <td className="py-2 text-right tabular-nums">
-                    ${m.cost_usd.toFixed(4)}
-                  </td>
-                </tr>
+        <Card className="mt-5">
+          <CardHeader className="pb-3">
+            <CardTitle>By model</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ul className="space-y-0">
+              {usage.by_model.map((m, i) => (
+                <li key={m.model}>
+                  {i > 0 && <Separator className="my-3" />}
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {m.model}
+                    </span>
+                    <span className="text-sm tabular-nums">
+                      ${m.cost_usd.toFixed(4)}
+                    </span>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="mt-8 flex gap-3">
-        <a
-          href="/chat"
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        >
-          Back to chat
-        </a>
-        {priv.plan !== "pro" && (
-          <a
-            href="/pricing"
-            className="rounded-md border border-border px-4 py-2 text-sm hover:border-primary"
-          >
-            Upgrade
-          </a>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Button asChild>
+          <Link href="/chat">Back to chat</Link>
+        </Button>
+        {plan !== "pro" && (
+          <Button asChild variant="outline">
+            <Link href="/pricing">
+              Upgrade to Pro
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         )}
       </div>
     </main>
